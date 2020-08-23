@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
+	"github.com/HFO4/cloudreve/pkg/thumb"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -31,6 +32,7 @@ type Policy struct {
 	AutoRename         bool
 	DirNameRule        string
 	FileNameRule       string
+	ThumbNameRule      string
 	IsOriginLinkEnable bool
 	Options            string `gorm:"type:text"`
 
@@ -55,7 +57,7 @@ type PolicyOption struct {
 }
 
 var thumbSuffix = map[string][]string{
-	"local":    {},
+	"local":    thumb.GetLocalSupportedThumbExt(),
 	"qiniu":    {".psd", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
 	"oss":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
 	"cos":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
@@ -135,6 +137,15 @@ func (policy *Policy) GeneratePath(uid uint, origin string) string {
 		"{path}":           origin + "/",
 	}
 	dirRule = util.Replace(replaceTable, dirRule)
+	return path.Clean(dirRule)
+}
+
+func (policy *Policy) GenerateThumbPath(uid uint) string {
+	dirThumb := policy.ThumbNameRule
+	replaceTable := map[string]string{
+		"{uid}": strconv.Itoa(int(uid)),
+	}
+	dirRule := util.Replace(replaceTable, dirThumb)
 	return path.Clean(dirRule)
 }
 

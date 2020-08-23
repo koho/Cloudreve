@@ -64,6 +64,7 @@ func addDefaultPolicy() {
 			AutoRename:         true,
 			DirNameRule:        "uploads/{uid}/{path}",
 			FileNameRule:       "{uid}_{randomkey8}_{originname}",
+			ThumbNameRule:      "uploads/thumbs",
 			IsOriginLinkEnable: false,
 		}
 		if err := DB.Create(&defaultPolicy).Error; err != nil {

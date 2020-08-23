@@ -2,7 +2,6 @@ package thumb
 
 import (
 	"fmt"
-	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"image"
@@ -109,12 +108,7 @@ func TestThumb_CreateAvatar(t *testing.T) {
 	thumb, err := NewThumbFromFile(file, "123.jpg")
 	asserts.NoError(err)
 
-	cache.Set("setting_avatar_path", "tests", 0)
-	cache.Set("setting_avatar_size_s", "50", 0)
-	cache.Set("setting_avatar_size_m", "130", 0)
-	cache.Set("setting_avatar_size_l", "200", 0)
-
-	asserts.NoError(thumb.CreateAvatar(1))
+	asserts.NoError(thumb.CreateAvatar(1, "tests", 50, 130, 200))
 	asserts.True(util.Exists(util.RelativePath("tests/avatar_1_1.png")))
 	asserts.True(util.Exists(util.RelativePath("tests/avatar_1_2.png")))
 	asserts.True(util.Exists(util.RelativePath("tests/avatar_1_0.png")))

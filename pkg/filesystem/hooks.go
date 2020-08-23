@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -229,7 +228,7 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 	if originFile.GetPolicy().IsThumbGenerateNeeded() {
 		go func() {
 			if originFile.PicInfo != "" {
-				_, _ = fs.Handler.Delete(ctx, []string{originFile.SourceName + conf.ThumbConfig.FileSuffix})
+				_, _ = fs.Handler.Delete(ctx, []string{fs.GetThumbPath(&originFile)})
 				fs.GenerateThumbnail(ctx, &originFile)
 			}
 		}()

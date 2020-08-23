@@ -23,6 +23,8 @@ const (
 	UserCtx
 	// ThumbSizeCtx 缩略图尺寸
 	ThumbSizeCtx
+	// ThumbPathCtx 缩略图路径
+	ThumbPathCtx
 	// FileSizeCtx 文件大小
 	FileSizeCtx
 	// ShareKeyCtx 分享文件的 HashID

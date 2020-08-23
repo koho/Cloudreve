@@ -9,6 +9,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/thumb"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"path/filepath"
 	"strconv"
 )
 
@@ -33,7 +34,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 	w, h := fs.GenerateThumbnailSize(0, 0)
 	ctx = context.WithValue(ctx, fsctx.ThumbSizeCtx, [2]uint{w, h})
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
-	res, err := fs.Handler.Thumb(ctx, fs.FileTarget[0].SourceName)
+	res, err := fs.Handler.Thumb(ctx, fs.GetThumbPath(&fs.FileTarget[0]))
 	if err == nil && conf.SystemConfig.Mode == "master" {
 		res.MaxAge = model.GetIntSetting("preview_timeout", 60)
 	}
@@ -50,9 +51,9 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 // TODO 失败时，如果之前还有图像信息，则清除
 func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	// 判断是否可以生成缩略图
-	if !IsInExtensionList(HandledExtension, file.Name) {
-		return
-	}
+	//if !IsInExtensionList(HandledExtension, file.Name) {
+	//	return
+	//}
 
 	// 新建上下文
 	newCtx, cancel := context.WithCancel(context.Background())
@@ -65,7 +66,17 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	}
 	defer source.Close()
 
-	image, err := thumb.NewThumbFromFile(source, file.Name)
+	var image *thumb.Thumb
+	for _, thumbHandler := range thumb.Handlers {
+		if thumbHandler.CanHandle(file.Name) {
+			image, err = thumbHandler.GenerateThumb(source, util.RelativePath(file.SourceName))
+			break
+		}
+	}
+	if image == nil {
+		return
+	}
+	//image, err := thumb.NewThumbFromFile(source, file.Name)
 	if err != nil {
 		util.Log().Warning("生成缩略图时无法解析 [%s] 图像数据：%s", file.SourceName, err)
 		return
@@ -77,7 +88,8 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	// 生成缩略图
 	image.GetThumb(fs.GenerateThumbnailSize(w, h))
 	// 保存到文件
-	err = image.Save(util.RelativePath(file.SourceName + conf.ThumbConfig.FileSuffix))
+	//err = image.Save(util.RelativePath(file.SourceName + conf.ThumbConfig.FileSuffix))
+	err = image.Save(util.RelativePath(fs.GetThumbPath(file)))
 	if err != nil {
 		util.Log().Warning("无法保存缩略图：%s", err)
 		return
@@ -92,8 +104,12 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 
 	// 失败时删除缩略图文件
 	if err != nil {
-		_, _ = fs.Handler.Delete(newCtx, []string{file.SourceName + conf.ThumbConfig.FileSuffix})
+		_, _ = fs.Handler.Delete(newCtx, []string{fs.GetThumbPath(file)})
 	}
+}
+
+func (fs *FileSystem) GetThumbPath(file *model.File) string {
+	return filepath.Join(fs.User.Policy.GenerateThumbPath(file.UserID), strconv.Itoa(int(file.UserID))+"_"+file.Name+conf.ThumbConfig.FileSuffix)
 }
 
 // GenerateThumbnailSize 获取要生成的缩略图的尺寸

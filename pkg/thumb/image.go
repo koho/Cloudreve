@@ -3,7 +3,6 @@ package thumb
 import (
 	"errors"
 	"fmt"
-	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"image"
 	"image/gif"
@@ -51,7 +50,7 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 
 	return &Thumb{
 		src: img,
-		ext: ext[1:],
+		ext: ext,
 	}, nil
 }
 
@@ -81,13 +80,7 @@ func (image *Thumb) Save(path string) (err error) {
 }
 
 // CreateAvatar 创建头像
-func (image *Thumb) CreateAvatar(uid uint) error {
-	// 读取头像相关设定
-	savePath := util.RelativePath(model.GetSettingByName("avatar_path"))
-	s := model.GetIntSetting("avatar_size_s", 50)
-	m := model.GetIntSetting("avatar_size_m", 130)
-	l := model.GetIntSetting("avatar_size_l", 200)
-
+func (image *Thumb) CreateAvatar(uid uint, savePath string, s int, m int, l int) error {
 	// 生成头像缩略图
 	src := image.src
 	for k, size := range []int{s, m, l} {

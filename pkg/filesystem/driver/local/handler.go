@@ -7,7 +7,6 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -127,8 +126,8 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	deleteFailed := make([]string, 0, len(files))
 	var retErr error
-
-	for _, value := range files {
+	thumbs, ok := ctx.Value(fsctx.ThumbPathCtx).([]string)
+	for i, value := range files {
 		err := os.Remove(util.RelativePath(filepath.FromSlash(value)))
 		if err != nil {
 			util.Log().Warning("无法删除文件，%s", err)
@@ -137,7 +136,9 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		}
 
 		// 尝试删除文件的缩略图（如果有）
-		_ = os.Remove(util.RelativePath(value + conf.ThumbConfig.FileSuffix))
+		if ok {
+			_ = os.Remove(util.RelativePath(thumbs[i]))
+		}
 	}
 
 	return deleteFailed, retErr
@@ -145,7 +146,8 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 
 // Thumb 获取文件缩略图
 func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	file, err := handler.Get(ctx, path+conf.ThumbConfig.FileSuffix)
+	//file, err := handler.Get(ctx, path+conf.ThumbConfig.FileSuffix)
+	file, err := handler.Get(ctx, path)
 	if err != nil {
 		return nil, err
 	}

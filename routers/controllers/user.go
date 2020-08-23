@@ -295,7 +295,11 @@ func UploadAvatar(c *gin.Context) {
 
 	// 创建头像
 	u := CurrentUser(c)
-	err = avatar.CreateAvatar(u.ID)
+	savePath := util.RelativePath(model.GetSettingByName("avatar_path"))
+	s := model.GetIntSetting("avatar_size_s", 50)
+	m := model.GetIntSetting("avatar_size_m", 130)
+	l := model.GetIntSetting("avatar_size_l", 200)
+	err = avatar.CreateAvatar(u.ID, savePath, s, m, l)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法创建头像", err))
 		return

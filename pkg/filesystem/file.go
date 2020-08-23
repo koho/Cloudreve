@@ -184,8 +184,10 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 	for policyID, toBeDeletedFiles := range files {
 		// 列举出需要物理删除的文件的物理路径
 		sourceNames := make([]string, 0, len(toBeDeletedFiles))
+		thumbNames := make([]string, 0, len(toBeDeletedFiles))
 		for i := 0; i < len(toBeDeletedFiles); i++ {
 			sourceNames = append(sourceNames, toBeDeletedFiles[i].SourceName)
+			thumbNames = append(thumbNames, fs.GetThumbPath(toBeDeletedFiles[i]))
 		}
 
 		// 切换上传策略
@@ -197,6 +199,7 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 		}
 
 		// 执行删除
+		ctx = context.WithValue(ctx, fsctx.ThumbPathCtx, thumbNames)
 		failedFile, _ := fs.Handler.Delete(ctx, sourceNames)
 		failed[policyID] = failedFile
 
