@@ -219,9 +219,20 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 
 	// 生成最终的预览器地址
 	// TODO 从配置文件中读取
-	viewerBase, _ := url.Parse("https://view.officeapps.live.com/op/view.aspx")
+	previewUrl := model.GetSettingByName("doc_preview_url")
+	//viewerBase, _ := url.Parse("https://view.officeapps.live.com/op/view.aspx")
+	if previewUrl == "" {
+		previewUrl = "https://view.officeapps.live.com/op/view.aspx?src="
+	}
+	viewerBase, _ := url.Parse(previewUrl)
 	params := viewerBase.Query()
-	params.Set("src", downloadURL)
+	//params.Set("src", downloadURL)
+	for k, v := range params {
+		if len(v) == 0 || v[0] == "" {
+			params.Set(k, downloadURL)
+		}
+	}
+	//params.Set("url", downloadURL)
 	viewerBase.RawQuery = params.Encode()
 
 	return serializer.Response{

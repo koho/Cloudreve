@@ -19,7 +19,6 @@ require (
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/go-querystring v1.0.0
 	github.com/gorilla/websocket v1.4.1
-	github.com/h2non/bimg v1.1.4
 	github.com/hashicorp/go-version v1.2.0
 	github.com/jinzhu/gorm v1.9.11
 	github.com/juju/ratelimit v1.0.1

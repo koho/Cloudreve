@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"image"
+	im "image"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
@@ -17,7 +17,7 @@ import (
 
 // Thumb 缩略图
 type Thumb struct {
-	src image.Image
+	src im.Image
 	ext string
 }
 
@@ -31,7 +31,7 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 	}
 
 	var err error
-	var img image.Image
+	var img im.Image
 	switch ext[1:] {
 	case "jpg":
 		img, err = jpeg.Decode(file)
@@ -56,7 +56,21 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 
 // GetThumb 生成给定最大尺寸的缩略图
 func (image *Thumb) GetThumb(width, height uint) {
-	image.src = resize.Thumbnail(width, height, image.src, resize.Lanczos3)
+	w, h := image.GetSize()
+	if w > h {
+		ratio := float64(height) / float64(h)
+		newWidth := uint(float64(w) * ratio)
+		image.src = resize.Resize(newWidth, height, image.src, resize.Lanczos3)
+		rectX0 := newWidth/2 - width/2
+		rectX1 := newWidth/2 + width/2
+		image.src = image.src.(interface{ SubImage(r im.Rectangle) im.Image }).SubImage(im.Rect(int(rectX0), 0, int(rectX1), int(height)))
+	} else {
+		ratio := float64(width) / float64(w)
+		newHeight := uint(float64(h) * ratio)
+		image.src = resize.Resize(width, newHeight, image.src, resize.Lanczos3)
+		image.src = image.src.(interface{ SubImage(r im.Rectangle) im.Image }).SubImage(im.Rect(0, 0, int(width), int(height)))
+	}
+	//image.src = resize.Thumbnail(width, height, image.src, resize.Lanczos3)
 }
 
 // GetSize 获取图像尺寸

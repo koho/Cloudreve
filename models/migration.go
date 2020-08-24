@@ -76,6 +76,7 @@ func addDefaultPolicy() {
 func addDefaultSettings() {
 	defaultSettings := []Setting{
 		{Name: "siteURL", Value: `http://localhost`, Type: "basic"},
+		{Name: "doc_preview_url", Value: "https://view.officeapps.live.com/op/view.aspx?src=", Type: "basic"},
 		{Name: "siteName", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteICPId", Value: ``, Type: "basic"},
 		{Name: "register_enabled", Value: `1`, Type: "register"},

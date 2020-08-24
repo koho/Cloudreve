@@ -67,32 +67,39 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	defer source.Close()
 
 	var image *thumb.Thumb
+	var canHandle bool
 	for _, thumbHandler := range thumb.Handlers {
 		if thumbHandler.CanHandle(file.Name) {
-			image, err = thumbHandler.GenerateThumb(source, util.RelativePath(file.SourceName))
+			canHandle = true
+			previewUrl := ""
+			if thumbHandler.NeedURL() {
+				if previewUrl, err = fs.GetDownloadURL(newCtx, file.ID, "doc_preview_timeout"); err != nil {
+					break
+				}
+			}
+			image, err = thumbHandler.GenerateThumb(source, util.RelativePath(file.SourceName), previewUrl)
 			break
 		}
 	}
-	if image == nil {
+	if !canHandle {
 		return
 	}
-	//image, err := thumb.NewThumbFromFile(source, file.Name)
-	if err != nil {
+	w, h := 1, 1
+	if image != nil && err == nil {
+		// 获取原始图像尺寸
+		w, h = image.GetSize()
+
+		// 生成缩略图
+		image.GetThumb(fs.GenerateThumbnailSize(w, h))
+		// 保存到文件
+		//err = image.Save(util.RelativePath(file.SourceName + conf.ThumbConfig.FileSuffix))
+		err = image.Save(util.RelativePath(fs.GetThumbPath(file)))
+		if err != nil {
+			util.Log().Warning("无法保存缩略图：%s", err)
+			return
+		}
+	} else {
 		util.Log().Warning("生成缩略图时无法解析 [%s] 图像数据：%s", file.SourceName, err)
-		return
-	}
-
-	// 获取原始图像尺寸
-	w, h := image.GetSize()
-
-	// 生成缩略图
-	image.GetThumb(fs.GenerateThumbnailSize(w, h))
-	// 保存到文件
-	//err = image.Save(util.RelativePath(file.SourceName + conf.ThumbConfig.FileSuffix))
-	err = image.Save(util.RelativePath(fs.GetThumbPath(file)))
-	if err != nil {
-		util.Log().Warning("无法保存缩略图：%s", err)
-		return
 	}
 
 	// 更新文件的图像信息
