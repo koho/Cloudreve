@@ -290,19 +290,20 @@ func FileUploadStream(c *gin.Context) {
 		return
 	}
 
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
+		return
+	}
+
+	fileName, _ = fs.GetUniqueFileName(ctx, fileName, filePath)
 	fileData := local.FileStream{
 		MIMEType:    c.Request.Header.Get("Content-Type"),
 		File:        c.Request.Body,
 		Size:        fileSize,
 		Name:        fileName,
 		VirtualPath: filePath,
-	}
-
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
-		return
 	}
 
 	// 给文件系统分配钩子

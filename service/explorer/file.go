@@ -211,6 +211,7 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 		objectID = uint(0)
 	}
 
+	fs.FileTarget[0].TouchFile()
 	// 获取文件临时下载地址
 	downloadURL, err := fs.GetDownloadURL(ctx, objectID.(uint), "doc_preview_timeout")
 	if err != nil {

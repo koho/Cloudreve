@@ -2,9 +2,13 @@ package model
 
 import (
 	"encoding/gob"
+	"fmt"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"path"
+	"path/filepath"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -19,6 +23,7 @@ type File struct {
 	PicInfo    string
 	FolderID   uint `gorm:"index:folder_id;unique_index:idx_only_one"`
 	PolicyID   uint
+	AccessDate time.Time
 
 	// 关联模型
 	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
@@ -50,6 +55,33 @@ func (folder *Folder) GetChildFile(name string) (*File, error) {
 		file.Position = path.Join(folder.Position, folder.Name)
 	}
 	return &file, result.Error
+}
+
+func (folder *Folder) GetNextFileName(name string) (string, error) {
+	ext := filepath.Ext(name)
+	fileName := name[:len(name)-len(ext)]
+	var files []File
+	result := DB.Where("folder_id = ? AND name LIKE ?", folder.ID, fileName+"%").Find(&files)
+	if result.Error != nil {
+		return "", result.Error
+	}
+	if len(files) == 0 {
+		return name, nil
+	}
+	pattern := regexp.MustCompile("^ \\((\\d+)\\)\\." + ext[1:] + "$")
+	lastNum := 0
+	for _, f := range files {
+		ending := f.Name[len(fileName):]
+		if pattern.MatchString(ending) {
+			matches := pattern.FindStringSubmatch(ending)
+			if len(matches) > 1 {
+				if i, err := strconv.Atoi(matches[1]); err == nil && i > lastNum {
+					lastNum = i
+				}
+			}
+		}
+	}
+	return fmt.Sprintf("%s (%d)%s", fileName, lastNum+1, ext), nil
 }
 
 // GetChildFiles 查找目录下子文件
@@ -186,6 +218,10 @@ func (file *File) Rename(new string) error {
 // UpdatePicInfo 更新文件的图像信息
 func (file *File) UpdatePicInfo(value string) error {
 	return DB.Model(&file).Update("pic_info", value).Error
+}
+
+func (file *File) TouchFile() error {
+	return DB.Model(&file).Update("AccessDate", time.Now()).Error
 }
 
 // UpdateSize 更新文件的大小信息

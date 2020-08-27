@@ -196,11 +196,37 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	return &credential, nil
 }
 
+func (fs *FileSystem) GetUniqueFileName(ctx context.Context, fileName string, virtualPath string) (string, error) {
+	// 检查路径是否存在，不存在就创建
+	isExist, folder := fs.IsPathExist(virtualPath)
+	if !isExist {
+		newFolder, err := fs.CreateDirectory(ctx, virtualPath)
+		if err != nil {
+			return "", err
+		}
+		folder = newFolder
+	}
+
+	// 检查文件是否存在
+	if ok, _ := fs.IsChildFileExist(
+		folder,
+		fileName,
+	); ok {
+		newFileName, err := folder.GetNextFileName(fileName)
+		if err != nil {
+			return "", err
+		}
+		return newFileName, nil
+	}
+	return fileName, nil
+}
+
 // UploadFromStream 从文件流上传文件
 func (fs *FileSystem) UploadFromStream(ctx context.Context, src io.ReadCloser, dst string, size uint64) error {
 	// 构建文件头
 	fileName := path.Base(dst)
 	filePath := path.Dir(dst)
+	fileName, _ = fs.GetUniqueFileName(ctx, fileName, filePath)
 	fileData := local.FileStream{
 		File:        src,
 		Size:        size,

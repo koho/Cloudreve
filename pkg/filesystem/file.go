@@ -10,6 +10,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/juju/ratelimit"
 	"io"
+	"time"
 )
 
 /* ============
@@ -62,6 +63,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 		Size:       file.GetSize(),
 		FolderID:   parent.ID,
 		PolicyID:   fs.User.Policy.ID,
+		AccessDate: time.Now(),
 	}
 
 	if fs.User.Policy.IsThumbExist(file.GetFileName()) {
@@ -105,6 +107,7 @@ func (fs *FileSystem) Preview(ctx context.Context, id uint, isText bool) (*respo
 		return nil, err
 	}
 
+	fs.FileTarget[0].TouchFile()
 	// 如果是文本文件预览，需要检查大小限制
 	sizeLimit := model.GetIntSetting("maxEditSize", 2<<20)
 	if isText && fs.FileTarget[0].Size > uint64(sizeLimit) {
