@@ -211,13 +211,13 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 		objectID = uint(0)
 	}
 
-	fs.FileTarget[0].TouchFile()
 	// 获取文件临时下载地址
 	downloadURL, err := fs.GetDownloadURL(ctx, objectID.(uint), "doc_preview_timeout")
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
+	fs.FileTarget[0].TouchFile()
 	// 生成最终的预览器地址
 	// TODO 从配置文件中读取
 	previewUrl := model.GetSettingByName("doc_preview_url")
