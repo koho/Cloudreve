@@ -54,6 +54,9 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	//if !IsInExtensionList(HandledExtension, file.Name) {
 	//	return
 	//}
+	if file.Size == 0 {
+		return
+	}
 
 	// 新建上下文
 	newCtx, cancel := context.WithCancel(context.Background())

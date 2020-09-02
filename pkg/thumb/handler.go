@@ -79,8 +79,8 @@ func NewVideoThumb() *VideoThumb {
 func (t *VideoThumb) GenerateThumb(file io.Reader, name string, url string) (*Thumb, error) {
 	var err error
 	var img image.Image
-	sec := rand.Intn(30) + 1
-	cmd := exec.Command("ffmpeg", "-i", name, "-ss", "00:00:"+strconv.Itoa(sec), "-vframes", "1", "-f", "singlejpeg", "-", "-y")
+	sec := rand.Intn(300) + 300
+	cmd := exec.Command("ffmpeg", "-ss", strconv.Itoa(sec), "-i", name, "-vframes", "1", "-f", "singlejpeg", "-", "-y")
 	var buffer bytes.Buffer
 	cmd.Stdout = &buffer
 	if err = cmd.Run(); err != nil || buffer.Len() == 0 {
