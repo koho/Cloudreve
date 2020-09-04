@@ -3,22 +3,19 @@ package thumb
 import (
 	"bytes"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"html"
 	"image"
 	"image/jpeg"
-	"image/png"
 	"io"
 	"io/ioutil"
 	"math/rand"
-	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 )
 
-var Handlers = []Handler{NewImageThumb(), NewVideoThumb(), NewDocThumb()}
+var Handlers = []Handler{NewImageThumb(), NewVideoThumb(), NewPDFThumb(), NewDocThumb()}
 
 func GetLocalSupportedThumbExt() []string {
 	ext := make([]string, 0)
@@ -101,53 +98,64 @@ func (t *VideoThumb) GenerateThumb(file io.Reader, name string, url string) (*Th
 	}, nil
 }
 
+type PDFThumb struct {
+	*BaseThumb
+}
+
+func NewPDFThumb() *PDFThumb {
+	return &PDFThumb{&BaseThumb{[]string{".pdf"}}}
+}
+
+func (t *PDFThumb) GenerateThumb(file io.Reader, name string, downLoadUrl string) (*Thumb, error) {
+	var err error
+	cmd := exec.Command("gs", "-q", "-dBATCH", "-dNOPAUSE", "-sDEVICE=jpeg", "-dFirstPage=1", "-dLastPage=1", "-sOutputFile=-", name)
+	var buffer bytes.Buffer
+	cmd.Stdout = &buffer
+	if err = cmd.Run(); err != nil || buffer.Len() == 0 {
+		return nil, err
+	}
+	img, err := jpeg.Decode(&buffer)
+	if err != nil {
+		return nil, err
+	}
+	return &Thumb{
+		src: img,
+		ext: getFileExt(name),
+	}, nil
+}
+
 type DocThumb struct {
 	*BaseThumb
 }
 
 func NewDocThumb() *DocThumb {
-	return &DocThumb{&BaseThumb{[]string{".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx"}}}
-}
-
-func (t *DocThumb) NeedURL() bool {
-	return true
+	return &DocThumb{&BaseThumb{[]string{".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx"}}}
 }
 
 func (t *DocThumb) GenerateThumb(file io.Reader, name string, downLoadUrl string) (*Thumb, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://docs.google.com/viewer?embedded=true&url="+downLoadUrl, nil)
+	dir, err := ioutil.TempDir("", "*")
 	if err != nil {
 		return nil, err
 	}
-	// Request the HTML page.
-	resp, err := client.Do(req)
+	defer os.RemoveAll(dir) // clean up
+
+	cmd := exec.Command("soffice", "--convert-to", "jpg", "--outdir", dir, name)
+	var buffer bytes.Buffer
+	cmd.Stdout = &buffer
+	cmd.Stderr = &buffer
+	if err = cmd.Run(); err != nil {
+		return nil, err
+	}
+	files, err := ioutil.ReadDir(dir)
+	if err != nil || len(files) == 0 {
+		return nil, err
+	}
+	imgFile, err := os.Open(filepath.Join(dir, files[0].Name()))
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return nil, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	pattern := regexp.MustCompile("\"/viewerng/thumb.+?\"")
-	thumbUrl := pattern.FindString(string(body))
-	thumbUrl, err = strconv.Unquote(thumbUrl)
-	if err != nil {
-		return nil, err
-	}
-	thumbUrl = html.UnescapeString(thumbUrl)
-	req, err = http.NewRequest("GET", "https://docs.google.com"+thumbUrl, nil)
-	if err != nil {
-		return nil, err
-	}
-	if resp, err = client.Do(req); err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return nil, nil
-	}
-	img, err := png.Decode(resp.Body)
+	defer imgFile.Close()
+	img, err := jpeg.Decode(imgFile)
 	if err != nil {
 		return nil, err
 	}
