@@ -27,7 +27,7 @@ type User struct {
 	// 表字段
 	gorm.Model
 	Email     string `gorm:"type:varchar(100);unique_index"`
-	Nick      string `gorm:"size:50"`
+	Nick      string `gorm:"size:50;unique_index"`
 	Password  string `json:"-"`
 	Status    int
 	GroupID   uint
@@ -140,6 +140,13 @@ func GetActiveUserByOpenID(openid string) (User, error) {
 func GetUserByEmail(email string) (User, error) {
 	var user User
 	result := DB.Set("gorm:auto_preload", true).Where("status = ? and email = ?", Active, email).First(&user)
+	return user, result.Error
+}
+
+// GetUserByNick 用Nick获取用户
+func GetUserByNick(nick string) (User, error) {
+	var user User
+	result := DB.Set("gorm:auto_preload", true).Where("status = ? and nick = ?", Active, nick).First(&user)
 	return user, result.Error
 }
 

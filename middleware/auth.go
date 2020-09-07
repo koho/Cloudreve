@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
@@ -90,7 +91,13 @@ func WebDAVAuth() gin.HandlerFunc {
 			return
 		}
 
-		expectedUser, err := model.GetUserByEmail(username)
+		var expectedUser model.User
+		var err error
+		if strings.Contains(username, "@") {
+			expectedUser, err = model.GetUserByEmail(username)
+		} else {
+			expectedUser, err = model.GetUserByNick(username)
+		}
 		if err != nil {
 			c.Status(http.StatusUnauthorized)
 			c.Abort()
@@ -98,12 +105,25 @@ func WebDAVAuth() gin.HandlerFunc {
 		}
 
 		// 密码正确？
-		webdav, err := model.GetWebdavByPassword(password, expectedUser.ID)
-		if err != nil {
+		if authOK, _ := expectedUser.CheckPassword(password); !authOK {
 			c.Status(http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
+		webdav := &model.Webdav{
+			Name:     "",
+			Password: "",
+			UserID:   expectedUser.ID,
+			Root:     "/",
+		}
+
+		//// 密码正确？
+		//webdav, err := model.GetWebdavByPassword(password, expectedUser.ID)
+		//if err != nil {
+		//	c.Status(http.StatusUnauthorized)
+		//	c.Abort()
+		//	return
+		//}
 
 		// 用户组已启用WebDAV？
 		if !expectedUser.Group.WebDAVEnabled {
