@@ -104,6 +104,8 @@ func InitMasterRouter() *gin.Engine {
 		路由
 	*/
 	{
+		// 用户IP
+		v3.GET("address", controllers.GetClientIP)
 		// 全局设置相关
 		site := v3.Group("site")
 		{

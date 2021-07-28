@@ -63,3 +63,8 @@ func CurrentUser(c *gin.Context) *model.User {
 	}
 	return nil
 }
+
+// GetClientIP 获取用户IP
+func GetClientIP(c *gin.Context) {
+	c.JSON(200, serializer.Response{Data: c.ClientIP()})
+}
